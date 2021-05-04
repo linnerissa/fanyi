@@ -7,7 +7,7 @@ const parseString = require('xml2js').parseString;
 const isChinese = require('is-chinese');
 const ora = require('ora');
 
-module.exports = function (word, options, callback) {
+module.exports = function (word, options, callback, onSuccess) {
   console.log('');
   const { say, iciba, youdao, dictionaryapi } = options;
   const requestCounts = [iciba, youdao, dictionaryapi].filter(isTrueOrUndefined).length;
@@ -31,6 +31,10 @@ module.exports = function (word, options, callback) {
     }
   };
 
+  const onSuccessCB = (data) => {
+    onSuccess && onSuccess(data);
+  };
+
   word = encodeURIComponent(word);
 
   // iciba
@@ -41,6 +45,7 @@ module.exports = function (word, options, callback) {
           if (err) {
             return;
           }
+          onSuccessCB(result);
           print.iciba(result.dict, options);
         });
       }
@@ -53,6 +58,7 @@ module.exports = function (word, options, callback) {
       if (!error && response.statusCode == 200) {
         try {
           const data = JSON.parse(entities.decode(body));
+          onSuccessCB(data);
           print.youdao(data, options);
         } catch (e) {
           // 来自您key的翻译API请求异常频繁，为保护其他用户的正常访问，只能暂时禁止您目前key的访问
@@ -75,6 +81,7 @@ module.exports = function (word, options, callback) {
             if (!err) {
               print.dictionaryapi(result.entry_list.entry, word, options);
             }
+            onSuccessCB(result);
           });
         }
         callbackAll();
